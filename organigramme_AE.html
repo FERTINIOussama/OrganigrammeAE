@@ -86,8 +86,8 @@ body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh}
 
   <div class="toolbar">
     <button class="btn primary" onclick="openAdd(null)">+ Ajouter</button>
-    <button class="btn ghost" onclick="expandAll()">Tout deplier</button>
-    <button class="btn ghost" onclick="collapseAll()">Tout replier</button>
+    <button class="btn ghost" onclick="expandAll()">Tout afficher</button>
+    <button class="btn ghost" onclick="collapseAll()">Tout désafficher</button>
     <button class="btn save" onclick="saveHTML()">Enregistrer</button>
   </div>
 
@@ -107,7 +107,7 @@ body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh}
 <div id="modal-bg" class="modal-bg" style="display:none" onclick="if(event.target===this)closeModal()">
   <div class="modal">
     <div class="modal-top">
-      <div id="m-title" class="modal-top-title">Nouvel employe</div>
+      <div id="m-title" class="modal-top-title">Nouveau</div>
       <div class="modal-top-sub">Renseignez les informations ci-dessous</div>
       <button class="modal-close" onclick="closeModal()">x</button>
     </div>
@@ -115,12 +115,12 @@ body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh}
       <div class="modal-avatar-float">
         <div class="modal-avatar-wrap"><img id="m-preview" class="modal-avatar" src="Images/AE.png" onerror="this.src='https://ui-avatars.com/api/?name=AE&background=075ead&color=fff&size=80'"/></div>
         <div class="modal-avatar-label">
-          <div class="lbl">Apercu avatar</div>
-          <div class="hint">Mise a jour en temps reel</div>
+          <div class="lbl"></div>
+          <div class="hint"></div>
         </div>
       </div>
-      <div class="form-row"><label>Nom complet</label><input id="m-name" placeholder="Ex : Jean Dupont"/></div>
-      <div class="form-row"><label>Poste</label><input id="m-role" placeholder="Ex : Chef de Projet"/></div>
+      <div class="form-row"><label>Nom complet</label><input id="m-name" placeholder="Ex : ALLARD Nicolas"/></div>
+      <div class="form-row"><label>Poste</label><input id="m-role" placeholder="Ex : Chargé d'affaires"/></div>
       <div class="form-row"><label>Image (URL ou chemin)</label><input id="m-img" placeholder="Images/AE.png" oninput="previewImg()"/></div>
       <div class="form-row"><label>Superieur hierarchique</label><select id="m-parent"></select></div>
     </div>
@@ -344,7 +344,7 @@ function closeModal(){document.getElementById('modal-bg').style.display='none'}
 function previewImg(){document.getElementById('m-preview').src=document.getElementById('m-img').value||'Images/AE.png'}
 function openAdd(parentId){
   editId=null;
-  document.getElementById('m-title').textContent='Nouvel employe';
+  document.getElementById('m-title').textContent='Nouveau';
   ['m-name','m-role'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('m-img').value='Images/AE.png';
   document.getElementById('m-preview').src='Images/AE.png';
@@ -354,7 +354,7 @@ function openAdd(parentId){
 }
 function openEdit(id){
   editId=id;const n=nodes.find(x=>x.id===id);
-  document.getElementById('m-title').textContent='Modifier employe';
+  document.getElementById('m-title').textContent='Modifier';
   document.getElementById('m-name').value=n.name;
   document.getElementById('m-role').value=n.role;
   document.getElementById('m-img').value=n.img||'Images/AE.png';
