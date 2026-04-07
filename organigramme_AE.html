@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Organigramme Atlantique Etudes</title>
+<title>Organigramme — Atlantique Etudes</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh}
@@ -18,9 +18,8 @@ body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh}
 .btn.save{background:#1D9E75;color:#fff;box-shadow:0 4px 14px rgba(29,158,117,.35)}
 .btn.save:hover{background:#178a63;transform:translateY(-1px)}
 
-#chart-viewport{width:100%;overflow:hidden}
-#chart-scaler{transform-origin:top center;transition:transform .2s}
-#canvas-wrap{position:relative;margin:0 auto}
+#chart-viewport{width:100%;overflow-x:auto;overflow-y:visible}
+#canvas-wrap{position:relative;display:inline-block}
 #svg-layer{position:absolute;inset:0;pointer-events:none;overflow:visible}
 #nodes-layer{position:relative}
 
@@ -93,12 +92,10 @@ body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh}
   </div>
 
   <div id="chart-viewport">
-    <div id="chart-scaler">
       <div id="canvas-wrap">
         <svg id="svg-layer" xmlns="http://www.w3.org/2000/svg"></svg>
         <div id="nodes-layer"></div>
       </div>
-    </div>
   </div>
 </div>
 
@@ -225,31 +222,32 @@ function render(){
   });
   if(minX===Infinity){minX=0;maxX=CARD_W;}
 
-  const pad=40;
+  const pad=60;
   const treeW=maxX-minX+pad*2;
   const treeH=maxY+pad*2+60;
 
-  // calcul du scale pour tenir dans la largeur disponible
-  const vpW=document.getElementById('chart-viewport').clientWidth||800;
-  const scale=Math.min(1, vpW/treeW);
-
-  const scaler=document.getElementById('chart-scaler');
-  scaler.style.transform='scale('+scale+')';
-  scaler.style.transformOrigin='top center';
-  // ajuste la hauteur du viewport pour éviter l'espace vide sous le canvas scalé
-  scaler.style.marginBottom=-(treeH*(1-scale))+'px';
+  // racine centrée dans le canvas
+  const roots=nodes.filter(n=>!n.parentId);
+  const rootX=roots.length>0&&positions[roots[0].id]?positions[roots[0].id].x:0;
+  // on veut que le centre de la racine soit au centre du canvas
+  // centre racine dans coords layout = rootX - minX + pad + CARD_W/2
+  // on veut ça = treeW/2
+  // donc on ajoute un décalage supplémentaire si besoin
+  const rootCenterInTree=(rootX-minX)+pad+CARD_W/2;
+  const extraLeft=Math.max(0, treeW/2-rootCenterInTree);
+  const extraRight=Math.max(0, rootCenterInTree-treeW/2);
+  const W=treeW+extraLeft+extraRight;
+  const ox=pad-minX+extraLeft;
 
   const wrap=document.getElementById('canvas-wrap');
-  wrap.style.width=treeW+'px';
+  wrap.style.width=W+'px';
   wrap.style.height=treeH+'px';
 
   const svg=document.getElementById('svg-layer');
-  svg.innerHTML='';svg.setAttribute('width',treeW);svg.setAttribute('height',treeH);
+  svg.innerHTML='';svg.setAttribute('width',W);svg.setAttribute('height',treeH);
   const nl=document.getElementById('nodes-layer');nl.innerHTML='';
 
   const colors=['#075ead','#1D9E75','#D85A30','#D4537E','#BA7517','#985FCF'];
-  // offset pour centrer dans le canvas et normaliser minX
-  const ox=pad-minX;
 
   nodes.forEach(node=>{
     if(!positions[node.id])return;
