@@ -1,0 +1,372 @@
+<html lang="fr"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Organigramme — Atlantique Etudes</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh}
+#app{padding:1.5rem 1rem 4rem;max-width:100%;overflow:hidden}
+
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:2rem;align-items:center;justify-content:center}
+.btn{font-size:14px;padding:10px 24px;border-radius:50px;border:none;cursor:pointer;transition:all .18s;font-weight:600;letter-spacing:.01em}
+.btn:active{transform:scale(.96)}
+.btn.primary{background:#075ead;color:#fff;box-shadow:0 4px 14px rgba(7,94,173,.35)}
+.btn.primary:hover{background:#054f8a;box-shadow:0 6px 18px rgba(7,94,173,.45);transform:translateY(-1px)}
+.btn.ghost{background:#fff;color:#075ead;border:2px solid #075ead;box-shadow:0 2px 8px rgba(7,94,173,.1)}
+.btn.ghost:hover{background:#e8f2fb;transform:translateY(-1px)}
+.btn.save{background:#1D9E75;color:#fff;box-shadow:0 4px 14px rgba(29,158,117,.35)}
+.btn.save:hover{background:#178a63;transform:translateY(-1px)}
+
+#chart-scroll{overflow:auto;width:100%}
+#canvas-wrap{position:relative;display:block;margin:0 auto}
+#svg-layer{position:absolute;inset:0;pointer-events:none;overflow:visible}
+#nodes-layer{position:relative}
+
+/* CARD */
+.card{
+  position:absolute;width:210px;
+  background:#fff;
+  border:1px solid #dde5f0;
+  border-radius:20px;padding:24px 16px 16px;
+  display:flex;flex-direction:column;align-items:center;
+  cursor:pointer;transition:border-color .2s,transform .18s,box-shadow .2s;
+  user-select:none;
+}
+.card::before{content:'';position:absolute;inset:0;border-radius:20px;background:linear-gradient(160deg,rgba(7,94,173,.05) 0%,transparent 55%);pointer-events:none}
+.card:hover{border-color:#075ead;transform:translateY(-3px);box-shadow:0 8px 24px rgba(7,94,173,.13)}
+.card.selected{border:2px solid #075ead;background:#f0f6fd}
+
+.dept-bar{position:absolute;top:0;left:16px;right:16px;height:5px;border-radius:0 0 5px 5px}
+.avatar-ring{width:90px;height:90px;border-radius:50%;padding:3px;background:linear-gradient(135deg,#075ead,#5a9fd4);margin-bottom:12px;flex-shrink:0}
+.avatar-ring img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;border:3px solid #fff}
+.cname{font-size:15px;font-weight:600;text-align:center;line-height:1.35;color:#1a1a2e}
+.crole{font-size:12px;color:#075ead;font-weight:600;text-align:center;margin-top:6px;background:rgba(7,94,173,.09);border-radius:20px;padding:4px 12px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.card-actions{display:flex;gap:6px;margin-top:12px;opacity:0;transition:opacity .15s;flex-wrap:wrap;justify-content:center}
+.card:hover .card-actions,.card.selected .card-actions{opacity:1}
+.card-actions button{font-size:11px;padding:5px 12px;border-radius:20px;border:none;cursor:pointer;font-weight:600;transition:all .15s}
+.card-actions button.edit-btn{background:#075ead;color:#fff}
+.card-actions button.edit-btn:hover{background:#054f8a}
+.card-actions button.add-btn{background:#1D9E75;color:#fff}
+.card-actions button.add-btn:hover{background:#178a63}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:999}
+.modal{background:#fff;border-radius:24px;width:440px;max-width:95vw;overflow:hidden;animation:pop .2s cubic-bezier(.34,1.4,.64,1);box-shadow:0 24px 60px rgba(0,0,0,.18)}
+@keyframes pop{from{transform:scale(.88);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-top{background:linear-gradient(135deg,#075ead 0%,#3a8fd4 100%);padding:24px 24px 32px;position:relative}
+.modal-top-title{font-size:18px;font-weight:700;color:#fff;margin-bottom:4px}
+.modal-top-sub{font-size:12px;color:rgba(255,255,255,.75)}
+.modal-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,255,255,.2);color:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:rgba(255,255,255,.35)}
+.modal-avatar-float{display:flex;align-items:flex-end;gap:14px;margin:-36px 24px 20px;position:relative;z-index:2}
+.modal-avatar-wrap{width:72px;height:72px;border-radius:50%;padding:3px;background:linear-gradient(135deg,#075ead,#5a9fd4);flex-shrink:0;box-shadow:0 4px 14px rgba(7,94,173,.35)}
+.modal-avatar{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;border:3px solid #fff}
+.modal-avatar-label .lbl{font-size:11px;font-weight:600;color:#888;letter-spacing:.04em;text-transform:uppercase}
+.modal-avatar-label .hint{font-size:12px;color:#aaa;margin-top:2px}
+.modal-body{padding:0 24px 24px;background:#fff}
+.form-row{margin-bottom:14px}
+.form-row label{font-size:11px;font-weight:600;color:#999;display:block;margin-bottom:5px;letter-spacing:.04em;text-transform:uppercase}
+.form-row input,.form-row select{width:100%;font-size:14px;padding:10px 13px;border-radius:12px;border:1px solid #e0e7ef;background:#f8fafd;color:#1a1a2e;transition:border-color .15s,background .15s;outline:none}
+.form-row input:focus,.form-row select:focus{border-color:#075ead;background:#fff}
+.form-row input::placeholder{color:#bbb}
+.modal-footer{display:flex;gap:8px;padding:16px 24px;background:#f8fafd;border-top:1px solid #eef2f8;align-items:center;border-radius:0 0 24px 24px}
+.modal-footer .spacer{flex:1}
+.del-btn{font-size:12px;padding:8px 14px;border-radius:20px;border:none;background:#fdecea;color:#c0392b;cursor:pointer;font-weight:600}
+.cancel-btn{font-size:13px;padding:8px 18px;border-radius:20px;border:1px solid #dde5f0;background:#fff;color:#888;cursor:pointer;font-weight:500}
+.save-btn{font-size:13px;padding:9px 22px;border-radius:20px;border:none;background:#075ead;color:#fff;font-weight:700;cursor:pointer}
+.save-btn:hover{background:#054f8a}
+
+.dept-0{background:#075ead}.dept-1{background:#1D9E75}.dept-2{background:#D85A30}
+.dept-3{background:#D4537E}.dept-4{background:#BA7517}.dept-5{background:#985FCF}
+</style>
+</head>
+<body>
+<div id="app">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:28px 24px 24px;background:#075ead;border-radius:16px;margin-bottom:1.75rem;text-align:center">
+    <div style="width:80px;height:80px;background:#fff;border-radius:14px;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.2)">
+      <img src="Images/AE.png" alt="AE" style="width:72px;height:72px;object-fit:contain" onerror="this.style.display='none'">
+    </div>
+    <div>
+      <div style="font-size:26px;font-weight:700;color:#fff;letter-spacing:.01em">Atlantique Etudes</div>
+      <div style="font-size:14px;color:rgba(255,255,255,.75);margin-top:4px;letter-spacing:.02em">Organigramme de l'entreprise</div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn primary" onclick="openAdd(null)">+ Ajouter</button>
+    <button class="btn ghost" onclick="expandAll()">Tout deplier</button>
+    <button class="btn ghost" onclick="collapseAll()">Tout replier</button>
+    <button class="btn save" onclick="saveHTML()">Enregistrer</button>
+  </div>
+  <div id="chart-scroll">
+    <div id="canvas-wrap" style="width: 1873px; height: 354px;">
+      <svg id="svg-layer" xmlns="http://www.w3.org/2000/svg" width="1873" height="354"><circle cx="936.5" cy="293" r="14" fill="rgba(0,0,0,0.12)" style="pointer-events: none;"></circle><rect x="908.5" y="277" width="56" height="28" rx="14" fill="#075ead" style="cursor: pointer; pointer-events: all;"></rect><text x="924.5" y="292" text-anchor="middle" dominant-baseline="middle" font-size="15" font-weight="700" fill="#fff" style="pointer-events: none;">+</text><line x1="934.5" y1="283" x2="934.5" y2="299" stroke="rgba(255,255,255,0.4)" stroke-width="1" style="pointer-events: none;"></line><text x="952.5" y="292" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="700" fill="#fff" style="pointer-events: none;">42</text></svg>
+      <div id="nodes-layer"><div class="card" style="left: 831.5px; top: 40px;"><div class="dept-bar dept-0"></div><div class="avatar-ring"><img src="Images/AE.jpeg" alt="ATLANTIQUE ETUDES" onerror="this.src='https://ui-avatars.com/api/?name=ATLANTIQUE%20ETUDES&amp;background=075ead&amp;color=fff&amp;size=80'"></div><div class="cname">ATLANTIQUE ETUDES</div><div class="crole">Société</div><div class="card-actions"><button class="edit-btn" onclick="openEdit('mnok8dec18cw')">Editer</button><button class="add-btn" onclick="openAdd('mnok8dec18cw')">+ Ajouter</button></div></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="modal-bg" class="modal-bg" style="display: none;" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-top">
+      <div id="m-title" class="modal-top-title">Modifier</div>
+      <div class="modal-top-sub">Renseignez les informations ci-dessous</div>
+      <button class="modal-close" onclick="closeModal()">x</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-avatar-float">
+        <div class="modal-avatar-wrap">
+          <img id="m-preview" class="modal-avatar" src="Images/AE.jpeg" onerror="this.src='https://ui-avatars.com/api/?name=AE&amp;background=075ead&amp;color=fff&amp;size=80'">
+        </div>
+        <div class="modal-avatar-label">
+          <div class="lbl"></div>
+          <div class="hint"></div>
+        </div>
+      </div>
+      <div class="form-row"><label>Nom complet</label><input id="m-name" placeholder="Ex : Jean Dupont"></div>
+      <div class="form-row"><label>Poste</label><input id="m-role" placeholder="Ex : Chef de Projet VRD"></div>
+      <div class="form-row"><label>Image (URL ou chemin)</label><input id="m-img" placeholder="Images/AE.png" oninput="previewImg()"></div>
+      <div class="form-row"><label>Superieur hierarchique</label><select id="m-parent"><option value="">— Aucun (racine) —</option></select></div>
+    </div>
+    <div class="modal-footer">
+      <button id="m-del" class="del-btn" style="" onclick="deleteNode()">Supprimer</button>
+      <div class="spacer"></div>
+      <button class="cancel-btn" onclick="closeModal()">Annuler</button>
+      <button class="save-btn" onclick="saveNode()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+<div style="display:flex;align-items:center;justify-content:center;gap:14px;padding:1.75rem 1rem 1.5rem;margin-top:.5rem">
+  <img src="Images/AE.png" alt="Atlantique Etudes" style="height:48px;object-fit:contain;" onerror="this.style.display='none'"/>
+  <p style="font-size:13px;color:#075ead;font-weight:500;letter-spacing:.3px">ATLANTIQUE-ETUDES © 2026 &nbsp;·&nbsp; Tous les droits sont réservés</p>
+</div>
+
+<script>
+const CARD_W=210,CARD_H=228,H_GAP=44,V_GAP=80;
+
+let nodes=[{"id":"mnok8dec18cw","name":"ATLANTIQUE ETUDES","role":"Société","img":"Images/AE.jpeg","parentId":null},{"id":"mnok91xk29uz","name":"BOCQUIER Willy","role":"Pole RTE LS","img":"Images/WBO-Avatar.png","parentId":"mnok8dec18cw"},{"id":"mnok9mzfjkbm","name":"MOREL David","role":"Pole ENEDIS","img":"Images/DMO-Avatar.png","parentId":"mnok8dec18cw"},{"id":"mnoka7bzd5rd","name":"FRANCOIS Amelie","role":"Pole GrDF & RH","img":"Images/AMF-Avatar.png","parentId":"mnok8dec18cw"},{"id":"mnokbxrwdcah","name":"SCRIMALI Mickael","role":"Pole RTE LA","img":"Images/MSC-Avatar.png","parentId":"mnok8dec18cw"},{"id":"mnokeq9plpvi","name":"RIVOLET Severine","role":"Administratif & Conventionnement","img":"Images/SRI-Avatar.png","parentId":"mnok8dec18cw"},{"id":"mnokhc0spamq","name":"LORTAL Hugo","role":"Charge d'affaire","img":"Images/HLO-Avatar.png","parentId":"mnok91xk29uz"},{"id":"mnoki94ix2f9","name":"ORTHWEIN Melanie","role":"Chargee d'affaire","img":"Images/MEO-Avatar.png","parentId":"mnok91xk29uz"},{"id":"mnoklfyhywj4","name":"RICOLLEAU Eloise","role":"Chargee d'affaire","img":"Images/ERI-Avatar.png","parentId":"mnoki94ix2f9"},{"id":"mnokmhwu94rz","name":"GUIGNARD Aymeric","role":"Charge d'affaire","img":"Images/AGU-Avatar.png","parentId":"mnokhc0spamq"},{"id":"mnokordtqwva","name":"DARCHE Tiburce","role":"Technicien d'etudes","img":"Images/TDA-Avatar.png","parentId":"mnol34wjfn1v"},{"id":"mnokpzedxibz","name":"EL HANNATI Anas","role":"Dessinateur","img":"Images/AEL-Avatar.png","parentId":"mnokmhwu94rz"},{"id":"mnokrosve3fx","name":"MANDIN David","role":"Dessinateur","img":"Images/DAM-Avatar.png","parentId":"mnoklfyhywj4"},{"id":"mnokuh03q5tt","name":"HUE Jeoffrey","role":"Dessinateur","img":"Images/JHU-Avatar.png","parentId":"mnokordtqwva"},{"id":"mnoky3tea6id","name":"BERANGER Marlene","role":"Chargee d'affaire","img":"Images/MBE-Avatar.png","parentId":"mnok9mzfjkbm"},{"id":"mnokysbrwjkp","name":"RIPOCHE Charly","role":"Charge d'affaire","img":"Images/CRI-Avatar.png","parentId":"mnok9mzfjkbm"},{"id":"mnokzc0687zj","name":"POURNIN Laurent","role":"Charge d'affaire","img":"Images/LPO-Avatar.png","parentId":"mnoky3tea6id"},{"id":"mnokzu38s71p","name":"VOYER Lucie","role":"Chargee d'affaire","img":"Images/LVO-Avatar.png","parentId":"mnokzc0687zj"},{"id":"mnol0jk7vwfy","name":"VIOLEAU Martin","role":"Charge d'affaire","img":"Images/MVI-Avatar.png","parentId":"mnok9mzfjkbm"},{"id":"mnol1hzidi9l","name":"SAMSON Marc-xeniel","role":"Charge d'affaire","img":"Images/MXS-Avatar.png","parentId":"mnol9y3mp61v"},{"id":"mnol34wjfn1v","name":"ALLARD Nicolas","role":"Charge d'affaire","img":"Images/NAL-Avatar.png","parentId":"mnok91xk29uz"},{"id":"mnol3vjvfde7","name":"FERTINI Oussama","role":"Developpeur Informatique","img":"Images/OUF-Avatar.png","parentId":"mnok91xk29uz"},{"id":"mnol8lbzom51","name":"FRIMIN Denis","role":"Charge d'affaire","img":"Images/DFR-Avatar.png","parentId":"mnol0jk7vwfy"},{"id":"mnol9y3mp61v","name":"ARNAUD Victor","role":"Charge d'affaire","img":"Images/VIA-Avatar.png","parentId":"mnokysbrwjkp"},{"id":"mnolbdprkms6","name":"BRUNEAU Matteo","role":"Charge d'affaire","img":"Images/MBR-Avatar.png","parentId":"mnol8lbzom51"},{"id":"mnolcgn9h25k","name":"COPIE Simon","role":"Charge d'affaire","img":"Images/SCO-Avatar.png","parentId":"mnokzu38s71p"},{"id":"mnole909hgw5","name":"PESLIER Arnaud","role":"Charge d'affaire","img":"Images/APE-Avatar.png","parentId":"mnol1hzidi9l"},{"id":"mnolf7rjhq2x","name":"DJILALI KHERAFA Karim","role":"Charge d'affaire","img":"Images/KDK-Avatar.png","parentId":"mnolbdprkms6"},{"id":"mnolfp95jtc6","name":"DANIELLOU Antoine","role":"Charge d'affaire","img":"Images/ADA-Avatar.png","parentId":"mnolcgn9h25k"},{"id":"mnolgn6683ku","name":"GANGNERON Thibault","role":"Technicien","img":"Images/TGA-Avatar.png","parentId":"mnolf7rjhq2x"},{"id":"mnolhi4ckkea","name":"LECOMPTE Hugo","role":"Charge d'affaire","img":"Images/AE.png","parentId":"mnole909hgw5"},{"id":"mnoljztr6ypk","name":"MARASI Landry","role":"Charge d'Affaire","img":"Images/LMA-Avatar.png","parentId":"mnoka7bzd5rd"},{"id":"mnolkvcms8pw","name":"Lambert Maxime","role":"Technicien d'etudes & Topographe","img":"Images/MLA-Avatar.png","parentId":"mnoljztr6ypk"},{"id":"mnolpqdjwvih","name":"GRECHEZ Romain","role":"Charge de detection","img":"Images/ROG-Avatar.png","parentId":"mnoka7bzd5rd"},{"id":"mnolqf675jil","name":"FOLLIOT Vincent","role":"Charge d'affaires","img":"Images/VFO-Avatar.png","parentId":"mnokbxrwdcah"},{"id":"mnolr7wulb6m","name":"DEBORD Thomas","role":"Charge d'affaires","img":"Images/TDE-Avatar.png","parentId":"mnokbxrwdcah"},{"id":"mnolsibzkybv","name":"GUITTONNEAU Florent","role":"Charge d'affaires","img":"Images/FLG-Avatar.png","parentId":"mnolqf675jil"},{"id":"mnolt7pl1w8z","name":"ROSSIGNOL Eliot","role":"Charge d'affaires","img":"Images/ERO-Avatar.png","parentId":"mnolr7wulb6m"},{"id":"mnolu6k59t6a","name":"WILLEY Joris","role":"Technicien","img":"Images/AE.png","parentId":"mnolsibzkybv"},{"id":"mnolwk4ow9j6","name":"GUEDET Emilie","role":"RTE conventionnement","img":"Images/EMG-Avatar.jpg","parentId":"mnokeq9plpvi"},{"id":"mnolx8j2owcq","name":"CHATAIGNER Jade","role":"ENEDIS conventionnement","img":"Images/JCH-Avatar.png","parentId":"mnokeq9plpvi"},{"id":"mnolxqts6jj7","name":"FER Aurelie","role":"ENEDIS conventionnement","img":"Images/AFE-Avatar.png","parentId":"mnolx8j2owcq"},{"id":"mnolzroake0y","name":"AVRILLA Mylene","role":"RTE conventionnement","img":"Images/AE.png","parentId":"mnolwk4ow9j6"}];
+
+let collapsed=new Set(),selId=null,editId=null;
+
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function kids(id){return nodes.filter(n=>n.parentId===id)}
+function desc(id){let r=[];kids(id).forEach(c=>{r.push(c.id);r=r.concat(desc(c.id));});return r}
+function fb(name){return'https://ui-avatars.com/api/?name='+encodeURIComponent(name||'AE')+'&background=075ead&color=fff&size=80'}
+function deptColor(id){
+  const roots=nodes.filter(n=>!n.parentId);
+  function root(nid){const n=nodes.find(x=>x.id===nid);return(!n||!n.parentId)?nid:root(n.parentId)}
+  const ri=roots.findIndex(r=>r.id===root(id));
+  return ri>=0?ri%6:0;
+}
+function subtreeW(id){
+  if(collapsed.has(id)||!kids(id).length)return CARD_W;
+  const ch=kids(id);
+  return Math.max(CARD_W,ch.reduce((s,c)=>s+subtreeW(c.id),0)+(ch.length-1)*H_GAP);
+}
+let positions={};
+function layout(id,x,y){
+  positions[id]={x,y};
+  if(collapsed.has(id))return;
+  const ch=kids(id);if(!ch.length)return;
+  const totalW=ch.reduce((s,c)=>s+subtreeW(c.id),0)+(ch.length-1)*H_GAP;
+  let cx=x+CARD_W/2-totalW/2;
+  ch.forEach(c=>{const sw=subtreeW(c.id);layout(c.id,cx,y+CARD_H+V_GAP);cx+=sw+H_GAP;});
+}
+function computeLayout(){
+  positions={};
+  const roots=nodes.filter(n=>!n.parentId);if(!roots.length)return;
+  const totalW=roots.reduce((s,r)=>s+subtreeW(r.id),0)+(roots.length-1)*H_GAP;
+  let cx=0;roots.forEach(r=>{const sw=subtreeW(r.id);layout(r.id,cx,0);cx+=sw+H_GAP;});
+}
+
+function render(){
+  computeLayout();
+  let minX=Infinity,maxX=0,maxY=0;
+  Object.values(positions).forEach(p=>{minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x+CARD_W);maxY=Math.max(maxY,p.y+CARD_H);});
+  if(minX===Infinity)minX=0;
+  const pad=40;
+  const scrollEl=document.getElementById('chart-scroll');
+  const scrollW=scrollEl.clientWidth||800;
+  const roots=nodes.filter(n=>!n.parentId);
+  const rootX=roots.length>0&&positions[roots[0].id]?positions[roots[0].id].x:0;
+  const offsetX=scrollW/2-(rootX+CARD_W/2);
+  const W=Math.max(maxX-minX+pad*2,scrollW);
+  const H=maxY+pad*2+46;
+  const wrap=document.getElementById('canvas-wrap');
+  wrap.style.width=W+'px';wrap.style.height=H+'px';
+  const svg=document.getElementById('svg-layer');
+  svg.innerHTML='';svg.setAttribute('width',W);svg.setAttribute('height',H);
+  const nl=document.getElementById('nodes-layer');nl.innerHTML='';
+  const ox=offsetX;
+  const colors=['#075ead','#1D9E75','#D85A30','#D4537E','#BA7517','#985FCF'];
+
+  nodes.forEach(node=>{
+    if(!positions[node.id])return;
+    const{x,y}=positions[node.id];
+    const dc=deptColor(node.id);
+    const sx=x+ox,sy=y+pad;
+
+    if(node.parentId&&positions[node.parentId]){
+      const p=positions[node.parentId];
+      const px=p.x+ox+CARD_W/2,py=p.y+pad+CARD_H;
+      const cx2=sx+CARD_W/2,cy2=sy;
+      const my=(py+cy2)/2;
+      const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+      path.setAttribute('d','M'+px+','+py+' C'+px+','+my+' '+cx2+','+my+' '+cx2+','+cy2);
+      path.setAttribute('fill','none');path.setAttribute('stroke',colors[dc]);
+      path.setAttribute('stroke-width','2');path.setAttribute('stroke-opacity','0.4');
+      svg.appendChild(path);
+    }
+
+    const ch=kids(node.id);
+    if(ch.length){
+      const dotX=sx+CARD_W/2,dotY=sy+CARD_H+23;
+      const isCol=collapsed.has(node.id);
+      const all=desc(node.id).length;
+
+      // shadow
+      const shadow=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      shadow.setAttribute('cx',dotX);shadow.setAttribute('cy',dotY+2);shadow.setAttribute('r','14');
+      shadow.setAttribute('fill','rgba(0,0,0,0.12)');shadow.style.pointerEvents='none';
+      svg.appendChild(shadow);
+
+      // main pill (wider when collapsed to show count)
+      const pillW=isCol?56:28,pillH=28,pillX=dotX-pillW/2,pillY=dotY-pillH/2;
+      const pill=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      pill.setAttribute('x',pillX);pill.setAttribute('y',pillY);
+      pill.setAttribute('width',pillW);pill.setAttribute('height',pillH);
+      pill.setAttribute('rx','14');
+      pill.setAttribute('fill',colors[dc]);
+      pill.style.cursor='pointer';pill.style.pointerEvents='all';
+      pill.addEventListener('click',()=>{isCol?collapsed.delete(node.id):collapsed.add(node.id);render()});
+      svg.appendChild(pill);
+
+      // icon +/-
+      const icon=document.createElementNS('http://www.w3.org/2000/svg','text');
+      icon.setAttribute('x',isCol?dotX-12:dotX);
+      icon.setAttribute('y',dotY+1);
+      icon.setAttribute('text-anchor','middle');icon.setAttribute('dominant-baseline','middle');
+      icon.setAttribute('font-size','15');icon.setAttribute('font-weight','700');
+      icon.setAttribute('fill','#fff');icon.style.pointerEvents='none';
+      icon.textContent=isCol?'+':'-';
+      svg.appendChild(icon);
+
+      // count badge when collapsed
+      if(isCol){
+        const sep=document.createElementNS('http://www.w3.org/2000/svg','line');
+        sep.setAttribute('x1',dotX-2);sep.setAttribute('y1',dotY-8);
+        sep.setAttribute('x2',dotX-2);sep.setAttribute('y2',dotY+8);
+        sep.setAttribute('stroke','rgba(255,255,255,0.4)');sep.setAttribute('stroke-width','1');
+        sep.style.pointerEvents='none';
+        svg.appendChild(sep);
+
+        const countTxt=document.createElementNS('http://www.w3.org/2000/svg','text');
+        countTxt.setAttribute('x',dotX+16);countTxt.setAttribute('y',dotY+1);
+        countTxt.setAttribute('text-anchor','middle');countTxt.setAttribute('dominant-baseline','middle');
+        countTxt.setAttribute('font-size','11');countTxt.setAttribute('font-weight','700');
+        countTxt.setAttribute('fill','#fff');countTxt.style.pointerEvents='none';
+        countTxt.textContent=all;
+        svg.appendChild(countTxt);
+      }
+    }
+
+    const card=document.createElement('div');
+    card.className='card'+(selId===node.id?' selected':'');
+    card.style.left=sx+'px';card.style.top=sy+'px';
+    card.onclick=e=>{if(e.target.tagName==='BUTTON')return;selId=selId===node.id?null:node.id;render()};
+    const imgSrc=node.img||'Images/AE.png';
+    card.innerHTML=
+      '<div class="dept-bar dept-'+dc+'"></div>'+
+      '<div class="avatar-ring"><img src="'+imgSrc+'" alt="'+node.name+'" onerror="this.src=\''+fb(node.name)+'\'"/></div>'+
+      '<div class="cname">'+node.name+'</div>'+
+      '<div class="crole">'+node.role+'</div>'+
+      '<div class="card-actions">'+
+        '<button class="edit-btn" onclick="openEdit(\''+node.id+'\')">Editer</button>'+
+        '<button class="add-btn" onclick="openAdd(\''+node.id+'\')">+ Ajouter</button>'+
+      '</div>';
+    nl.appendChild(card);
+  });
+}
+
+function populateParent(excId,sel){
+  const s=document.getElementById('m-parent');
+  s.innerHTML='<option value="">— Aucun (racine) —</option>';
+  const excl=excId?new Set([excId,...desc(excId)]):new Set();
+  nodes.filter(n=>!excl.has(n.id)).forEach(n=>{
+    const o=document.createElement('option');
+    o.value=n.id;o.textContent=n.name+' · '+n.role;
+    if(n.id===sel)o.selected=true;
+    s.appendChild(o);
+  });
+}
+function showModal(){document.getElementById('modal-bg').style.display='flex'}
+function closeModal(){document.getElementById('modal-bg').style.display='none'}
+function previewImg(){document.getElementById('m-preview').src=document.getElementById('m-img').value||'Images/AE.png'}
+
+function openAdd(parentId){
+  editId=null;
+  document.getElementById('m-title').textContent='Nouveau';
+  ['m-name','m-role'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('m-img').value='Images/AE.png';
+  document.getElementById('m-preview').src='Images/AE.png';
+  document.getElementById('m-del').style.display='none';
+  populateParent(null,parentId||'');
+  showModal();
+  setTimeout(()=>document.getElementById('m-name').focus(),60);
+}
+function openEdit(id){
+  editId=id;
+  const n=nodes.find(x=>x.id===id);
+  document.getElementById('m-title').textContent='Modifier';
+  document.getElementById('m-name').value=n.name;
+  document.getElementById('m-role').value=n.role;
+  document.getElementById('m-img').value=n.img||'Images/AE.png';
+  document.getElementById('m-preview').src=n.img||'Images/AE.png';
+  document.getElementById('m-del').style.display='';
+  populateParent(id,n.parentId||'');
+  showModal();
+}
+function saveNode(){
+  const name=document.getElementById('m-name').value.trim();
+  const role=document.getElementById('m-role').value.trim();
+  const img=document.getElementById('m-img').value.trim()||'Images/AE.png';
+  const parentId=document.getElementById('m-parent').value||null;
+  if(!name){document.getElementById('m-name').focus();return}
+  if(editId)Object.assign(nodes.find(x=>x.id===editId),{name,role,img,parentId});
+  else nodes.push({id:uid(),name,role,img,parentId});
+  closeModal();render();
+}
+function deleteNode(){
+  if(!editId)return;
+  desc(editId).forEach(id=>{const n=nodes.find(x=>x.id===id);if(n)n.parentId=null});
+  nodes=nodes.filter(n=>n.id!==editId);
+  if(selId===editId)selId=null;
+  closeModal();render();
+}
+function expandAll(){collapsed.clear();render()}
+function collapseAll(){nodes.filter(n=>kids(n.id).length).forEach(n=>collapsed.add(n.id));render()  // centre le scroll sur la racine
+  requestAnimationFrame(()=>{
+    const sc=document.getElementById('chart-scroll');
+    const wrap=document.getElementById('canvas-wrap');
+    const wrapW=parseInt(wrap.style.width)||0;
+    const scW=sc.clientWidth||0;
+    if(wrapW>scW) sc.scrollLeft=(wrapW-scW)/2;
+  });
+}
+
+function saveHTML(){
+  const snap=JSON.stringify(nodes);
+  const src=document.documentElement.outerHTML
+    .replace(/let nodes=\[[\s\S]*?\];/,'let nodes='+snap+';');
+  const blob=new Blob([src],{type:'text/html'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='organigramme_AE.html';
+  a.click();URL.revokeObjectURL(a.href);
+}
+
+render();
+</script>
+
+</body></html>
